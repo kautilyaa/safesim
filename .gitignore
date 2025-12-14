@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data
+data/raw/
+data/processed/
+*.pkl
+*.csv
+
+# API Keys
+.env
+config/secrets.json
+
+# Model cache
+models/
+.cache/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

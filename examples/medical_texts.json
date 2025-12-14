@@ -1,0 +1,60 @@
+{
+  "examples": [
+    {
+      "id": "hypertension_001",
+      "original": "Patient prescribed 50mg Atenolol PO q.d. for hypertension. Monitor for bradycardia.",
+      "expected_simplified": "Take 50mg of Atenolol by mouth once a day for high blood pressure. Watch out for slow heart rate.",
+      "critical_entities": ["50mg", "Atenolol", "q.d.", "hypertension", "bradycardia"],
+      "category": "cardiovascular"
+    },
+    {
+      "id": "diabetes_001",
+      "original": "Administer 10 units insulin subcutaneously b.i.d. before meals. Check blood glucose q.i.d. Target range 80-120 mg/dL.",
+      "expected_simplified": "Give 10 units of insulin under the skin twice a day before meals. Check blood sugar four times a day. Keep it between 80-120 mg/dL.",
+      "critical_entities": ["10 units", "insulin", "subcutaneously", "b.i.d.", "q.i.d.", "80-120 mg/dL"],
+      "category": "endocrine"
+    },
+    {
+      "id": "postop_001",
+      "original": "Patient received 2mg Morphine IV q4h PRN for pain. Maintain SBP >90 mmHg. Monitor O2 sat, keep >92%.",
+      "expected_simplified": "Give 2mg of Morphine into a vein every 4 hours as needed for pain. Keep blood pressure above 90 mmHg. Watch oxygen levels, keep above 92%.",
+      "critical_entities": ["2mg", "Morphine", "IV", "q4h", "90 mmHg", "92%"],
+      "category": "post-operative"
+    },
+    {
+      "id": "cardiac_001",
+      "original": "Start Metoprolol 25mg PO b.i.d. for atrial fibrillation. Hold if HR <60 bpm or SBP <100 mmHg.",
+      "expected_simplified": "Start taking 25mg of Metoprolol by mouth twice a day for irregular heartbeat. Don't take it if heart rate is below 60 beats per minute or blood pressure is below 100 mmHg.",
+      "critical_entities": ["Metoprolol", "25mg", "PO", "b.i.d.", "60 bpm", "100 mmHg"],
+      "category": "cardiovascular"
+    },
+    {
+      "id": "respiratory_001",
+      "original": "Albuterol inhaler 2 puffs q4-6h PRN for dyspnea. If no improvement after 3 doses, seek emergency care.",
+      "expected_simplified": "Use 2 puffs of Albuterol inhaler every 4-6 hours as needed for shortness of breath. If you don't feel better after 3 doses, go to the emergency room.",
+      "critical_entities": ["Albuterol", "2 puffs", "q4-6h"],
+      "category": "respiratory"
+    },
+    {
+      "id": "anticoagulation_001",
+      "original": "Warfarin 5mg PO q.d. for DVT prophylaxis. Monitor INR weekly, target 2-3. Avoid NSAIDs and alcohol.",
+      "expected_simplified": "Take 5mg of Warfarin by mouth once a day to prevent blood clots. Get blood test (INR) checked weekly, goal is 2-3. Don't take pain relievers like ibuprofen or drink alcohol.",
+      "critical_entities": ["Warfarin", "5mg", "PO", "q.d.", "INR", "2-3"],
+      "category": "hematology"
+    },
+    {
+      "id": "infection_001",
+      "original": "Amoxicillin 500mg PO t.i.d. x 7 days for sinusitis. Complete full course even if symptoms improve.",
+      "expected_simplified": "Take 500mg of Amoxicillin by mouth three times a day for 7 days for your sinus infection. Finish all the medicine even if you feel better.",
+      "critical_entities": ["Amoxicillin", "500mg", "PO", "t.i.d.", "7 days"],
+      "category": "infectious_disease"
+    },
+    {
+      "id": "thyroid_001",
+      "original": "Levothyroxine 100mcg PO q.d. on empty stomach for hypothyroidism. TSH to be checked in 6 weeks.",
+      "expected_simplified": "Take 100mcg of Levothyroxine by mouth once a day on an empty stomach for underactive thyroid. Get thyroid blood test checked in 6 weeks.",
+      "critical_entities": ["Levothyroxine", "100mcg", "PO", "q.d.", "6 weeks"],
+      "category": "endocrine"
+    }
+  ]
+}
