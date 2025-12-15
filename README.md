@@ -357,7 +357,7 @@ pipeline = SafeSimPipeline(
 # Claude
 pipeline = SafeSimPipeline(
     llm_backend="claude",
-    model="claude-3-5-sonnet-20241022",
+    model="claude-3-5-sonnet-20240620",
     api_key="sk-ant-..."
 )
 

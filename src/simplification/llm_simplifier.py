@@ -4,6 +4,7 @@ Supports multiple LLM backends: OpenAI, Anthropic Claude, HuggingFace
 """
 
 import os
+import re
 from typing import Optional, Dict, List
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -110,7 +111,7 @@ class OpenAISimplifier(LLMSimplifier):
 class ClaudeSimplifier(LLMSimplifier):
     """Simplification using Anthropic Claude"""
 
-    def __init__(self, model: str = "claude-3-5-sonnet-20241022", api_key: Optional[str] = None):
+    def __init__(self, model: str = "claude-haiku-4-5-20251001", api_key: Optional[str] = None):
         super().__init__()
         self.model = model
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
@@ -213,41 +214,114 @@ class HuggingFaceSimplifier(LLMSimplifier):
 class DummySimplifier(LLMSimplifier):
     """
     Dummy simplifier for testing without API keys.
-    Uses rule-based replacements.
+    Uses rule-based replacements with case-insensitive matching.
     """
 
     def __init__(self):
         super().__init__()
+        import re
+        
+        # Expanded medical term replacements (case-insensitive)
         self.replacements = {
+            # Cardiovascular terms
             'hypertension': 'high blood pressure',
             'bradycardia': 'slow heart rate',
             'tachycardia': 'fast heart rate',
             'hypotension': 'low blood pressure',
+            'atrial fibrillation': 'irregular heartbeat',
+            'myocardial infarction': 'heart attack',
+            'congestive heart failure': 'heart failure',
+            
+            # Frequency abbreviations
             'q.d.': 'once a day',
+            'q.d': 'once a day',
+            'qd': 'once a day',
             'b.i.d.': 'twice a day',
+            'b.i.d': 'twice a day',
+            'bid': 'twice a day',
             't.i.d.': 'three times a day',
+            't.i.d': 'three times a day',
+            'tid': 'three times a day',
+            'q.i.d.': 'four times a day',
+            'q.i.d': 'four times a day',
+            'qid': 'four times a day',
+            'q4h': 'every 4 hours',
+            'q6h': 'every 6 hours',
+            'q8h': 'every 8 hours',
+            'prn': 'as needed',
+            
+            # Routes of administration
             'PO': 'by mouth',
+            'po': 'by mouth',
             'IV': 'into a vein',
+            'iv': 'into a vein',
             'subcutaneous': 'under the skin',
+            'subcutaneously': 'under the skin',
+            'intramuscular': 'into a muscle',
+            'intramuscularly': 'into a muscle',
+            
+            # Common medical terms
             'monitor for': 'watch out for',
+            'monitor': 'watch',
             'prescribed': 'given',
             'administer': 'give',
+            'dyspnea': 'shortness of breath',
+            'dysuria': 'painful urination',
+            'nocturia': 'frequent urination at night',
+            'hepatomegaly': 'enlarged liver',
+            'splenomegaly': 'enlarged spleen',
+            'tachypnea': 'rapid breathing',
+            'orthostatic hypotension': 'low blood pressure when standing',
+            'glossitis': 'swollen tongue',
+            'stomatitis': 'mouth sores',
+            'aphthous ulcers': 'mouth ulcers',
+            'conjunctival': 'eye',
+            'hyperemia': 'redness',
+            'photophobia': 'sensitivity to light',
+            'lacrimation': 'tearing',
+            'edema': 'swelling',
+            'syncope': 'fainting',
+            'seizures': 'convulsions',
+            'delirium': 'confusion',
+            'coma': 'unconsciousness',
+            'neonate': 'newborn baby',
+            'endotracheal': 'breathing tube',
+            'meconium': 'first bowel movement',
+            'aspirator': 'suction device',
+            
+            # Patient language
+            'Patient ': 'You ',
+            'patient ': 'you ',
+            'The patient': 'You',
+            'the patient': 'you',
         }
+        
+        # Compile regex patterns for case-insensitive word-boundary matching
+        # Sort by length (longest first) to handle multi-word terms first
+        sorted_replacements = sorted(self.replacements.items(), key=lambda x: len(x[0]), reverse=True)
+        self.patterns = []
+        for medical_term, simple_term in sorted_replacements:
+            # Escape special regex characters
+            escaped_term = re.escape(medical_term)
+            # Use word boundaries for whole-word matching (case-insensitive)
+            pattern = re.compile(r'\b' + escaped_term + r'\b', re.IGNORECASE)
+            self.patterns.append((pattern, simple_term))
 
     def simplify(self, text: str, entities: Optional[List] = None) -> SimplificationResult:
-        """Simple rule-based simplification"""
+        """Simple rule-based simplification with case-insensitive matching"""
         simplified = text
-
-        for medical_term, simple_term in self.replacements.items():
-            simplified = simplified.replace(medical_term, simple_term)
-
-        # Make it more conversational
-        simplified = simplified.replace("Patient ", "You should ")
-        simplified = simplified.replace("patient ", "you ")
-
+        
+        # Apply replacements using regex patterns (case-insensitive, word-boundary aware)
+        for pattern, replacement in self.patterns:
+            simplified = pattern.sub(replacement, simplified)
+        
+        # Additional conversational improvements
+        simplified = simplified.replace(" should be ", " should ")
+        simplified = re.sub(r'\s+', ' ', simplified)  # Remove extra spaces
+        
         return SimplificationResult(
             original_text=text,
-            simplified_text=simplified,
+            simplified_text=simplified.strip(),
             model_used="rule-based",
             prompt_used="N/A",
             success=True

@@ -6,9 +6,14 @@ Patient Portal for safe medical text simplification
 import streamlit as st
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+import os
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+# Load environment variables from .env file
+load_dotenv()
 
 from src.safesim_pipeline import SafeSimPipeline
 from src.entity_extraction import MedicalEntityExtractor
@@ -119,11 +124,17 @@ def main():
 
     # API key inputs (if needed)
     api_key = None
+    # if llm_backend == "openai":
+    #     api_key = st.sidebar.text_input("OpenAI API Key", type="password")
+    # elif llm_backend == "claude":
+    #     api_key = st.sidebar.text_input("Anthropic API Key", type="password")
+    # api_key = None
     if llm_backend == "openai":
-        api_key = st.sidebar.text_input("OpenAI API Key", type="password")
+        sidebar_key = st.sidebar.text_input("OpenAI API Key", type="password", help="Leave empty to use ANTHROPIC_API_KEY from .env file")
+        api_key = sidebar_key if sidebar_key else os.getenv("OPENAI_API_KEY")
     elif llm_backend == "claude":
-        api_key = st.sidebar.text_input("Anthropic API Key", type="password")
-
+        sidebar_key = st.sidebar.text_input("Anthropic API Key", type="password", help="Leave empty to use ANTHROPIC_API_KEY from .env file")
+        api_key = sidebar_key if sidebar_key else os.getenv("ANTHROPIC_API_KEY")
     # Example texts
     st.sidebar.header("📝 Example Texts")
     examples = {
@@ -178,7 +189,11 @@ def main():
                     else:
                         st.markdown(f'<div class="unsafe-badge">⚠️ NEEDS REVIEW</div>', unsafe_allow_html=True)
 
-                    st.markdown(f"**Verification Score:** {result.verification['score']:.0%}")
+                    # Safely display verification score
+                    if result.verification and 'score' in result.verification:
+                        st.markdown(f"**Verification Score:** {result.verification['score']:.0%}")
+                    else:
+                        st.markdown("**Verification Score:** N/A (simplification failed)")
 
                     st.text_area(
                         "Simplified text:",

@@ -125,6 +125,9 @@ python -m spacy download en_core_web_sm
 ```
 
 **Issue**: Want better medical entity recognition?
+
+**Note**: `en_core_sci_md` (scispacy) may not be compatible with Python 3.12+. SafeSim automatically uses `en_core_web_sm` on Python 3.12+ for better compatibility. If you're using Python < 3.12:
+
 ```bash
 pip install scispacy
 pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.3/en_core_sci_md-0.5.3.tar.gz

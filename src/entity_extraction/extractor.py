@@ -5,6 +5,7 @@ using Named Entity Recognition and pattern matching.
 """
 
 import re
+import sys
 from typing import Dict, List, Set, Tuple
 from dataclasses import dataclass
 import spacy
@@ -36,24 +37,45 @@ class MedicalEntityExtractor:
     Uses a hybrid approach: spaCy NER + regex patterns for high-precision extraction.
     """
 
-    def __init__(self, model_name: str = "en_core_sci_md"):
+    def __init__(self, model_name: str = None):
         """
         Initialize the extractor.
 
         Args:
-            model_name: spaCy model to use (default: scispacy medical model)
-                       Falls back to en_core_web_sm if scispacy not available
+            model_name: spaCy model to use. If None, automatically selects:
+                       - en_core_web_sm for Python 3.12+ (better compatibility)
+                       - en_core_sci_md for Python < 3.12 (if available)
+                       Falls back to en_core_web_sm if preferred model not available
         """
-        try:
-            self.nlp = spacy.load(model_name)
-        except OSError:
-            print(f"Model {model_name} not found. Falling back to en_core_web_sm")
+        # Auto-select model based on Python version for better compatibility
+        if model_name is None:
+            # Python 3.12+ has compatibility issues with older scispacy models
+            if sys.version_info >= (3, 12):
+                model_name = "en_core_web_sm"
+            else:
+                # Try scispacy model first for older Python versions
+                model_name = "en_core_sci_md"
+        
+        # Try to load the requested model
+        model_loaded = False
+        if model_name == "en_core_sci_md":
+            # Only try scispacy if explicitly requested or on older Python
+            try:
+                self.nlp = spacy.load(model_name)
+                model_loaded = True
+            except (OSError, ImportError):
+                # Silently fall back - scispacy may not be compatible
+                pass
+        
+        # Fall back to en_core_web_sm if model not loaded
+        if not model_loaded:
             try:
                 self.nlp = spacy.load("en_core_web_sm")
             except OSError:
                 print("Downloading en_core_web_sm...")
                 import subprocess
-                subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
+                subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"], 
+                             check=False)
                 self.nlp = spacy.load("en_core_web_sm")
 
         # Dosage pattern (e.g., "50mg", "2 tablets", "10 mL")
@@ -90,7 +112,23 @@ class MedicalEntityExtractor:
         self.known_medications = {
             'atenolol', 'metformin', 'lisinopril', 'aspirin', 'warfarin',
             'metoprolol', 'amlodipine', 'simvastatin', 'levothyroxine',
-            'omeprazole', 'albuterol', 'insulin', 'prednisone', 'ibuprofen'
+            'omeprazole', 'albuterol', 'insulin', 'prednisone', 'ibuprofen',
+            'desmopressin', 'morphine', 'amoxicillin', 'morphine'
+        }
+
+        # Common medical conditions/symptoms (for Med-EASi style text)
+        self.known_conditions = {
+            'hypertension', 'bradycardia', 'tachycardia', 'hypotension',
+            'diabetes', 'obesity', 'obese', 'nocturia', 'dyspnea', 'dysuria',
+            'hepatomegaly', 'splenomegaly', 'tachypnea', 'syncope', 'seizures',
+            'delirium', 'coma', 'edema', 'glossitis', 'stomatitis', 'aphthous',
+            'hyperemia', 'photophobia', 'lacrimation', 'sinusitis', 'hypothyroidism'
+        }
+
+        # Common anatomical terms
+        self.known_anatomy = {
+            'liver', 'kidney', 'heart', 'lung', 'brain', 'stomach', 'intestine',
+            'bladder', 'prostate', 'thyroid', 'pancreas', 'spleen', 'adrenal'
         }
 
     def extract(self, text: str) -> List[MedicalEntity]:
@@ -169,6 +207,75 @@ class MedicalEntityExtractor:
                             start_char=ent.start_char,
                             end_char=ent.end_char,
                             confidence=0.8
+                        ))
+
+        # 6. Fallback: Search for known medications even if spaCy didn't recognize them
+        # This is important because spaCy's general model often misses medication names
+        for med in self.known_medications:
+            # Use word boundaries to find the medication name
+            pattern = re.compile(r'\b' + re.escape(med) + r'\b', re.IGNORECASE)
+            for match in pattern.finditer(text):
+                # Check if this medication wasn't already extracted
+                if not self._overlaps_existing(match.start(), match.end(), entities):
+                    # Find the actual case in the text
+                    actual_text = text[match.start():match.end()]
+                    entities.append(MedicalEntity(
+                        text=actual_text,
+                        entity_type='MEDICATION',
+                        start_char=match.start(),
+                        end_char=match.end(),
+                        confidence=0.8  # Slightly lower confidence since spaCy didn't find it
+                    ))
+
+        # 7. Extract known medical conditions/symptoms
+        for condition in self.known_conditions:
+            pattern = re.compile(r'\b' + re.escape(condition) + r'\b', re.IGNORECASE)
+            for match in pattern.finditer(text):
+                if not self._overlaps_existing(match.start(), match.end(), entities):
+                    actual_text = text[match.start():match.end()]
+                    entities.append(MedicalEntity(
+                        text=actual_text,
+                        entity_type='CONDITION',
+                        start_char=match.start(),
+                        end_char=match.end(),
+                        confidence=0.75
+                    ))
+
+        # 8. Extract known anatomical terms
+        for anatomy in self.known_anatomy:
+            pattern = re.compile(r'\b' + re.escape(anatomy) + r'\b', re.IGNORECASE)
+            for match in pattern.finditer(text):
+                if not self._overlaps_existing(match.start(), match.end(), entities):
+                    actual_text = text[match.start():match.end()]
+                    entities.append(MedicalEntity(
+                        text=actual_text,
+                        entity_type='ANATOMY',
+                        start_char=match.start(),
+                        end_char=match.end(),
+                        confidence=0.7
+                    ))
+
+        # 9. Extract capitalized medical terms (likely medications or proper medical terms)
+        # This catches terms like "Desmopressin", "Atenolol", etc. that might be missed
+        # Look for capitalized words that are likely medical terms
+        for token in doc:
+            # Check for capitalized words that look like medical terms
+            # (capitalized, not at start of sentence, likely noun)
+            if (token.is_upper or (token.text[0].isupper() and len(token.text) > 3)) and \
+               token.pos_ in ['NOUN', 'PROPN'] and \
+               token.text.lower() not in ['patient', 'patients', 'the', 'this', 'that', 'these', 'those']:
+                # Check if it's not already extracted and looks medical
+                if len(token.text) > 4 and token.text.isalpha():
+                    # Check if it overlaps with existing entities
+                    if not self._overlaps_existing(token.idx, token.idx + len(token.text), entities):
+                        # Heuristic: if it's capitalized and looks like a medical term, extract it
+                        # This will catch medications like "Desmopressin" that spaCy might miss
+                        entities.append(MedicalEntity(
+                            text=token.text,
+                            entity_type='MEDICATION' if token.text[0].isupper() else 'CONDITION',
+                            start_char=token.idx,
+                            end_char=token.idx + len(token.text),
+                            confidence=0.6  # Lower confidence for heuristic extraction
                         ))
 
         # Sort by start position

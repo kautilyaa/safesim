@@ -59,12 +59,14 @@ python -m spacy download en_core_web_sm
 
 ### Optional: Install SciSpacy for Better Medical Entity Recognition
 
-For improved performance on medical text:
+For improved performance on medical text (Python < 3.12 only):
 
 ```bash
 pip install scispacy
 pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.3/en_core_sci_md-0.5.3.tar.gz
 ```
+
+**Note**: `en_core_sci_md` may not be compatible with Python 3.12+. SafeSim will automatically use `en_core_web_sm` on Python 3.12+, which provides good medical entity recognition through regex patterns and standard NER.
 
 ## Step 5: Configure API Keys (Optional)
 
