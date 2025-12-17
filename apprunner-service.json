@@ -1,0 +1,33 @@
+{
+  "ServiceName": "safesim-service",
+  "SourceConfiguration": {
+    "ImageRepository": {
+      "ImageIdentifier": "<YOUR_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/safesim:latest",
+      "ImageConfiguration": {
+        "Port": "8501",
+        "RuntimeEnvironmentVariables": {
+          "OPENAI_API_KEY": "your-openai-key-here",
+          "ANTHROPIC_API_KEY": "your-anthropic-key-here"
+        }
+      },
+      "ImageRepositoryType": "ECR"
+    },
+    "AutoDeploymentsEnabled": true,
+    "AuthenticationConfiguration": {
+      "AccessRoleArn": "arn:aws:iam::<YOUR_ACCOUNT_ID>:role/service-role/AppRunnerECRAccessRole"
+    }
+  },
+  "InstanceConfiguration": {
+    "Cpu": "1 vCPU",
+    "Memory": "2 GB"
+  },
+  "HealthCheckConfiguration": {
+    "Protocol": "HTTP",
+    "Path": "/_stcore/health",
+    "Interval": 10,
+    "Timeout": 5,
+    "HealthyThreshold": 1,
+    "UnhealthyThreshold": 5
+  }
+}
+

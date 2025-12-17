@@ -1,0 +1,21 @@
+# Python 3.12+ compatible dependencies - MINIMAL for API backends only
+
+# Core dependencies
+streamlit>=1.32.0
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+spacy>=3.7.4
+numpy>=1.26.0
+
+# LLM backends (API only - no local models)
+openai>=1.12.0
+anthropic>=0.18.0
+# transformers>=4.38.0  # NOT NEEDED for API backends
+# torch>=2.2.0          # NOT NEEDED for API backends
+
+# NLP models
+# scispacy>=0.5.4       # Optional, can skip if space is tight
+
+# Utilities
+python-dotenv>=1.0.0
+requests>=2.31.0
