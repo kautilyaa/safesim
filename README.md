@@ -8,52 +8,37 @@
 
 SafeSim is a medical text simplification system that uses a **neuro-symbolic approach** to convert complex discharge summaries and clinical notes into patient-friendly language while **guaranteeing** the preservation of critical medical facts.
 
-## Problem Statement
+## Architecture
 
-Traditional neural text simplification models often suffer from:
-- **Hallucinations**: Adding information that wasn't in the original text
-- **Omissions**: Dropping critical medical details (dosages, medication names, vitals)
-- **Lack of Safety Guarantees**: No verification that important facts are preserved
-
-In medical contexts, these failures can have serious consequences. A patient who doesn't know their correct dosage or medication schedule could face health risks.
-
-## Our Solution: Neuro-Symbolic Pipeline
-
-SafeSim combines neural language models with symbolic verification:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    SAFESIM PIPELINE                          │
-└─────────────────────────────────────────────────────────────┘
-
-Input: "Patient prescribed 50mg Atenolol PO q.d. for hypertension."
-
-    ↓
-┌─────────────────────────────────┐
-│ 1. Entity Extraction (Symbolic) │  ← Regex + NER
-├─────────────────────────────────┤
-│ Extracted: [50mg, Atenolol,    │
-│             PO, q.d.]           │
-└─────────────────────────────────┘
-    ↓
-┌─────────────────────────────────┐
-│ 2. LLM Simplification (Neural)  │  ← GPT-4, Claude, BART
-├─────────────────────────────────┤
-│ "Take 50mg of Atenolol by mouth │
-│  once a day for high blood      │
-│  pressure."                     │
-└─────────────────────────────────┘
-    ↓
-┌─────────────────────────────────┐
-│ 3. Logic Verification (Symbolic)│  ← Deterministic checks
-├─────────────────────────────────┤
-│ [OK] 50mg found                 │
-│ [OK] Atenolol found             │
-│ [OK] q.d. → "once a day" (OK)   │
-│ Score: 100% - SAFE              │
-└─────────────────────────────────┘
-
-Output: [SAFE] Verified safe simplification
+```mermaid
+flowchart TD
+    A[Input: Medical Text] --> B[Content Relevance Check]
+    B -->|Medical| C[Entity Extraction]
+    B -->|Non-Medical| Z[Reject]
+    C --> D[LLM Simplification]
+    D --> E[Logic Verification]
+    E -->|Safe| F[Output: Simplified Text]
+    E -->|Unsafe| G[Retry with Missing Entities]
+    G --> D
+    
+    subgraph Extraction["Entity Extraction (Symbolic)"]
+        C1[spaCy NER]
+        C2[Regex Patterns]
+    end
+    
+    subgraph Simplification["LLM Simplification (Neural)"]
+        D1[OpenAI GPT-4]
+        D2[Anthropic Claude]
+        D3[HuggingFace BART/T5]
+        D4[Dummy Backend]
+    end
+    
+    subgraph Verification["Logic Verification (Symbolic)"]
+        E1[Exact Match]
+        E2[Normalized Match]
+        E3[Fuzzy Matching]
+        E4[Transform Dictionary]
+    end
 ```
 
 ## Quick Start
@@ -61,14 +46,7 @@ Output: [SAFE] Verified safe simplification
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/safesim.git
-cd safesim
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Download spaCy model
 python -m spacy download en_core_web_sm
 ```
 
@@ -78,24 +56,10 @@ python -m spacy download en_core_web_sm
 streamlit run src/ui/app.py
 ```
 
-Then open http://localhost:8501 in your browser.
-
 ### Run the API Server
 
 ```bash
-# Using uvicorn directly
 uvicorn src.api.app:app --host 0.0.0.0 --port 8000
-
-# Or using Python
-python -m src.api.app
-```
-
-API documentation will be available at http://localhost:8000/api/docs
-
-### Run Tests
-
-```bash
-python -m pytest tests/ -v
 ```
 
 ### Use as a Library
@@ -103,431 +67,105 @@ python -m pytest tests/ -v
 ```python
 from src.safesim_pipeline import SafeSimPipeline
 
-# Initialize with dummy backend (no API key needed)
 pipeline = SafeSimPipeline(llm_backend="dummy", strictness="high")
+result = pipeline.process("Patient prescribed 50mg Atenolol PO q.d. for hypertension.")
 
-# Or use OpenAI
-# pipeline = SafeSimPipeline(llm_backend="openai", api_key="sk-...")
-
-# Process medical text
-text = "Patient prescribed 50mg Atenolol PO q.d. for hypertension."
-result = pipeline.process(text)
-
-print(f"Original: {result.original_text}")
 print(f"Simplified: {result.simplified_text}")
 print(f"Safe: {result.is_safe}")
-print(f"Score: {result.verification['score']:.0%}")
 ```
 
 ## Features
 
-### 1. Multi-Entity Extraction
-- **Dosages**: 50mg, 10 units, 2 tablets
-- **Medications**: Atenolol, Metformin, Insulin
-- **Vitals**: 120/80 mmHg, 98.6°F, 72 bpm
-- **Frequencies**: q.d., b.i.d., twice daily
-- **Routes**: PO, IV, subcutaneous
+- **Multi-Entity Extraction**: Dosages, medications, vitals, frequencies, routes
+- **Multiple LLM Backends**: OpenAI, Anthropic Claude, HuggingFace, Dummy
+- **Configurable Strictness**: High (95%+), Medium (85%+), Low (75%+)
+- **Safety Verification**: Deterministic checks with fuzzy matching and transform dictionaries
+- **Multiple Interfaces**: Web UI (Streamlit), REST API (FastAPI), Python library
 
-### 2. Multiple LLM Backends
-- OpenAI (GPT-4, GPT-3.5)
-- Anthropic Claude
-- HuggingFace (BART, T5)
-- Dummy (rule-based, for testing)
-
-### 3. Configurable Strictness
-- **High**: All critical entities must match exactly (95%+ similarity)
-- **Medium**: Minor variations allowed (85%+ similarity)
-- **Low**: Semantic equivalence accepted (75%+ similarity)
-
-### 4. Safety Verification
-- Deterministic entity preservation checks
-- Acceptable transformation dictionary (e.g., "q.d." → "once a day")
-- Fuzzy matching for spacing variations
-- Warning generation for missing entities
-- Content relevance checking (ensures only medical text is processed)
-
-### 5. Multiple Interfaces
-- **Web UI**: Streamlit-based interactive interface
-- **REST API**: FastAPI-based programmatic access
-- **Python Library**: Direct integration in your code
-
-## Architecture
-
-### Project Structure
+## Project Structure
 
 ```
 safesim/
 ├── src/
-│   ├── entity_extraction/
-│   │   ├── __init__.py
-│   │   └── extractor.py          # NER + regex entity extraction
-│   ├── simplification/
-│   │   ├── __init__.py
-│   │   └── llm_simplifier.py     # LLM backends (GPT, Claude, BART)
-│   ├── verification/
-│   │   ├── __init__.py
-│   │   ├── logic_checker.py      # Symbolic fact verification
-│   │   └── content_relevance.py  # Medical content relevance check
-│   ├── ui/
-│   │   ├── __init__.py
-│   │   └── app.py                # Streamlit web interface
-│   ├── api/
-│   │   ├── __init__.py
-│   │   └── app.py                # FastAPI REST API
-│   ├── __init__.py
-│   └── safesim_pipeline.py       # Main orchestration pipeline
+│   ├── entity_extraction/     # NER + regex extraction
+│   ├── simplification/        # LLM backends
+│   ├── verification/          # Safety checks
+│   ├── ui/                    # Streamlit interface
+│   ├── api/                   # FastAPI REST API
+│   └── safesim_pipeline.py   # Main pipeline
 ├── tests/
-│   ├── __init__.py
-│   └── test_pipeline.py          # Unit tests
-├── examples/
-│   └── medical_texts.json        # Example medical texts
 ├── evaluation/
-│   ├── baselines/                # Baseline models
-│   ├── metrics/                  # Evaluation metrics
-│   └── notebooks/                # Evaluation notebooks
-├── requirements.txt
-├── setup.py
-└── README.md
+└── requirements.txt
 ```
 
-### Component Details
+## API
 
-#### 1. Entity Extraction (`src/entity_extraction/extractor.py`)
+### REST API
 
-Uses a hybrid approach:
-- **spaCy NER**: For medications, conditions (using en_core_sci_md if available)
-- **Regex patterns**: For dosages (50mg), frequencies (q.d.), vitals (120/80 mmHg)
-
-**Why hybrid?**
-- Pure NER misses structured entities like dosages
-- Pure regex misses context-dependent entities like medication names
-
-#### 2. LLM Simplification (`src/simplification/llm_simplifier.py`)
-
-Supports multiple backends:
-- **OpenAI GPT-4**: Best quality, requires API key
-- **Anthropic Claude**: Great for safety, requires API key
-- **HuggingFace BART/T5**: Local deployment, good for research
-- **Dummy (Rule-based)**: For testing without API keys
-
-System prompt emphasizes:
-```
-CRITICAL RULES:
-1. NEVER omit numerical values (dosages, vitals, measurements)
-2. NEVER omit medication names
-3. NEVER change the meaning of medical instructions
-```
-
-#### 3. Logic Verification (`src/verification/logic_checker.py`)
-
-Deterministic checks:
-1. **Exact match**: Is "50mg" in the simplified text?
-2. **Normalized match**: Remove spaces/punctuation, then check
-3. **Acceptable transforms**: Is "q.d." → "once a day" acceptable?
-4. **Fuzzy dosage match**: Does "50mg" match "50 mg"?
-5. **Medication root**: Is "atenolol" present even if case differs?
-
-**Scoring**: Jaccard similarity between original and simplified entity sets
-
-#### 4. Content Relevance Check (`src/verification/content_relevance.py`)
-
-Ensures only medical content is processed:
-- Detects non-medical text and rejects it
-- Prevents misuse of the system
-- Provides safety warnings
-
-#### 5. Pipeline (`src/safesim_pipeline.py`)
-
-Orchestrates the components:
-```python
-1. relevance = relevance_checker.check(text)
-2. entities = extractor.extract(text)
-3. simplified = simplifier.simplify(text, entities)
-4. verification = checker.verify(entities, simplified)
-5. if not safe and retries < max:
-       simplified = simplifier.simplify(text, entities + missing)
-       verification = checker.verify(entities, simplified)
-```
-
-## API Documentation
-
-### REST API Endpoints
-
-#### GET `/`
-Root endpoint with service information.
-
-#### GET `/api/health`
-Health check endpoint.
-
-#### POST `/api/simplify`
-Simplify medical text.
-
-**Request Body:**
+**POST `/api/simplify`**
 ```json
 {
   "text": "Patient prescribed 50mg Atenolol PO q.d. for hypertension.",
   "llm_backend": "dummy",
-  "strictness": "high",
-  "api_key": "optional-api-key",
-  "verbose": false
+  "strictness": "high"
 }
 ```
 
-**Response:**
-```json
-{
-  "original_text": "...",
-  "simplified_text": "...",
-  "entities": [...],
-  "verification": {
-    "is_safe": true,
-    "score": 1.0,
-    "missing_entities": [],
-    "warnings": []
-  },
-  "is_safe": true,
-  "is_relevant": true,
-  "relevance_status": "medical",
-  "relevance_explanation": "...",
-  "warnings": [],
-  "model_used": "dummy"
-}
-```
+**GET `/api/backends`** - List available backends
 
-#### GET `/api/backends`
-List available LLM backends.
+**GET `/api/health`** - Health check
 
 ### Python API
 
 ```python
-from src.safesim_pipeline import SafeSimPipeline, SafeSimResult
+from src.safesim_pipeline import SafeSimPipeline
 
-# Initialize pipeline
-pipeline = SafeSimPipeline(
-    llm_backend="openai",
-    strictness="high",
-    api_key="sk-..."
-)
-
-# Process single text
-result: SafeSimResult = pipeline.process(text, verbose=True)
-
-# Process multiple texts
-results = pipeline.batch_process(texts, verbose=False)
-
-# Get statistics
-stats = pipeline.get_statistics(results)
+pipeline = SafeSimPipeline(llm_backend="openai", strictness="high", api_key="sk-...")
+result = pipeline.process(text)
+results = pipeline.batch_process(texts)
 ```
 
 ## Configuration
 
-### LLM Backend Configuration
-
 ```python
-# OpenAI
-pipeline = SafeSimPipeline(
-    llm_backend="openai",
-    model="gpt-4o-mini",  # or "gpt-4"
-    api_key="sk-..."
-)
+# LLM Backends
+pipeline = SafeSimPipeline(llm_backend="openai", model="gpt-4o-mini", api_key="sk-...")
+pipeline = SafeSimPipeline(llm_backend="claude", api_key="sk-ant-...")
+pipeline = SafeSimPipeline(llm_backend="huggingface", model_name="facebook/bart-large-cnn")
+pipeline = SafeSimPipeline(llm_backend="dummy")  # For testing
 
-# Claude
-pipeline = SafeSimPipeline(
-    llm_backend="claude",
-    model="claude-3-5-sonnet-20240620",
-    api_key="sk-ant-..."
-)
-
-# HuggingFace
-pipeline = SafeSimPipeline(
-    llm_backend="huggingface",
-    model_name="facebook/bart-large-cnn"
-)
-
-# Dummy (for testing)
-pipeline = SafeSimPipeline(llm_backend="dummy")
-```
-
-### Strictness Levels
-
-```python
-# High strictness (recommended for clinical use)
-pipeline = SafeSimPipeline(strictness="high")
-# - All critical entities must match exactly
-# - 95%+ similarity required
-# - No missing dosages or medications allowed
-
-# Medium strictness (balanced)
-pipeline = SafeSimPipeline(strictness="medium")
-# - Minor variations allowed
-# - 85%+ similarity required
-# - Max 1 missing non-critical entity
-
-# Low strictness (research)
-pipeline = SafeSimPipeline(strictness="low")
-# - Semantic equivalence accepted
-# - 75%+ similarity required
-# - Max 2 missing non-critical entities
+# Strictness Levels
+pipeline = SafeSimPipeline(strictness="high")   # 95%+ similarity, recommended
+pipeline = SafeSimPipeline(strictness="medium") # 85%+ similarity
+pipeline = SafeSimPipeline(strictness="low")    # 75%+ similarity
 ```
 
 ### Environment Variables
-
-Create a `.env` file:
 
 ```bash
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-## Docker Deployment
-
-### Build Docker Image
-
-```bash
-docker build -t safesim:latest .
-```
-
-### Run Container
-
-```bash
-# Streamlit UI
-docker run -p 8501:8501 safesim:latest
-
-# API Server
-docker run -p 8000:8000 -e MODE=api safesim:latest
-```
-
 ## Development
 
-### Running Tests
-
 ```bash
-# Run all tests
+# Run tests
 python -m pytest tests/ -v
 
-# Run specific test
-python -m pytest tests/test_pipeline.py::TestEntityExtraction -v
-
-# Run with coverage
-python -m pytest tests/ --cov=src --cov-report=html
+# Docker
+docker build -t safesim:latest .
+docker run -p 8501:8501 safesim:latest  # UI
+docker run -p 8000:8000 -e MODE=api safesim:latest  # API
 ```
-
-### Adding New Entity Types
-
-Edit `src/entity_extraction/extractor.py`:
-
-```python
-# Add new pattern
-self.lab_value_pattern = re.compile(
-    r'\b(?:HbA1c|Glucose|Creatinine)\s*[:=]?\s*\d+\.?\d*\b',
-    re.IGNORECASE
-)
-
-# Add to extract() method
-for match in self.lab_value_pattern.finditer(text):
-    entities.append(MedicalEntity(
-        text=match.group(),
-        entity_type='LAB_VALUE',
-        start_char=match.start(),
-        end_char=match.end(),
-        confidence=0.95
-    ))
-```
-
-### Adding New LLM Backends
-
-Edit `src/simplification/llm_simplifier.py`:
-
-```python
-class MyCustomSimplifier(LLMSimplifier):
-    def __init__(self, **kwargs):
-        super().__init__()
-        # Initialize your model
-
-    def simplify(self, text: str, entities: Optional[List] = None) -> SimplificationResult:
-        # Implement simplification
-        pass
-```
-
-## Evaluation Metrics
-
-SafeSim can be evaluated on multiple dimensions:
-
-### 1. Safety Metrics
-- **Entity Preservation Rate**: % of critical entities preserved
-- **Hallucination Rate**: % of generated entities not in original
-- **Verification Score**: Jaccard similarity of entity sets
-
-### 2. Simplification Quality
-- **Readability**: Flesch-Kincaid Grade Level
-- **Compression**: Length reduction ratio
-- **Fluency**: Perplexity scores
-
-### 3. Clinical Utility
-- **User studies**: Can patients understand the simplified text?
-- **Expert evaluation**: Do doctors approve of the simplifications?
-- **Task success**: Can patients follow instructions correctly?
-
-## Use Cases
-
-### 1. Patient Portals
-Hospitals can integrate SafeSim to automatically generate patient-friendly versions of:
-- Discharge summaries
-- Medication instructions
-- Lab result explanations
-
-### 2. Medical Education
-Medical students can use SafeSim to:
-- Learn medical terminology in context
-- See how to communicate with patients
-- Practice writing patient-friendly notes
-
-### 3. Research
-NLP researchers can use SafeSim as:
-- A baseline for controllable generation
-- A case study in neuro-symbolic AI
-- A testbed for medical NLP
-
-## Citation
-
-If you use SafeSim in your research, please cite:
-
-```bibtex
-@inproceedings{safesim2024,
-  title={SafeSim: Neuro-Symbolic Medical Text Simplification with Guaranteed Fact Preservation},
-  author={Your Name},
-  booktitle={NLP 607 Final Project},
-  year={2024},
-  institution={University of Maryland}
-}
-```
-
-## Contributing
-
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License
 
 ## Acknowledgments
 
-- **spaCy** for NER capabilities
-- **Med-EASi dataset** creators (Basu et al.)
-- **OpenAI, Anthropic, HuggingFace** for LLM APIs
-- **Streamlit** for the web framework
-- **FastAPI** for the REST API framework
-
-## Contact
-
-For questions or collaboration:
-- Email: your.email@umd.edu
-- GitHub Issues: [github.com/yourusername/safesim/issues](https://github.com/yourusername/safesim/issues)
+spaCy, Med-EASi dataset, OpenAI, Anthropic, HuggingFace, Streamlit, FastAPI
 
 ---
 

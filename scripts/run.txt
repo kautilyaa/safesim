@@ -13,3 +13,11 @@ streamlit run src/ui/app.py --server.port 8502
 
 
 For ec2
+
+uvicorn src.api.app:app --host 0.0.0.0 --port 8001 --reload
+
+2-user@ip-172-31-29-171 ~]$ tmux new -s myapi
+[detached (from session myapi)]
+[ec2-user@ip-172-31-29-171 ~]$  tmux attach -t mysession.
+[detached (from session mysession)]
+[ec2-user@ip-172-31-29-171 ~]$  tmux attach -t myapi.
