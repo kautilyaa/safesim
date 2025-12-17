@@ -19,7 +19,6 @@ ENV/
 data/raw/
 data/processed/
 *.pkl
-*.csv
 
 # API Keys
 .env

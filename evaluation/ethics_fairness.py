@@ -175,9 +175,9 @@ class EthicsAndFairnessEvaluator:
         report.append(f"  Fairness Gap: {overall['fairness_gap']:.1%}")
 
         if overall['fairness_gap'] < 0.1:
-            report.append(f"  ✅ PASS: Low fairness gap (<10%)")
+            report.append(f"  [PASS] Low fairness gap (<10%)")
         else:
-            report.append(f"  ⚠️  WARNING: High fairness gap (>{overall['fairness_gap']:.0%})")
+            report.append(f"  [WARNING] High fairness gap (>{overall['fairness_gap']:.0%})")
 
         # 2. Potential Biases
         report.append("\n\n2. BIAS ANALYSIS")
@@ -218,17 +218,17 @@ class EthicsAndFairnessEvaluator:
         report.append("-" * 80)
 
         report.append("\n**Positive Impacts:**")
-        report.append("  ✅ Improves health literacy for patients")
-        report.append("  ✅ Reduces hospital readmissions (better understanding → adherence)")
-        report.append("  ✅ Democratizes medical information")
-        report.append("  ✅ Reduces burden on healthcare providers")
+        report.append("  [+] Improves health literacy for patients")
+        report.append("  [+] Reduces hospital readmissions (better understanding → adherence)")
+        report.append("  [+] Democratizes medical information")
+        report.append("  [+] Reduces burden on healthcare providers")
 
         report.append("\n**Potential Risks:**")
-        report.append("  ⚠️  Over-reliance on automation without human review")
-        report.append("  ⚠️  May miss cultural context in medical communication")
-        report.append("  ⚠️  Could deskill medical professionals if over-used")
-        report.append("  ⚠️  Privacy concerns if processing real patient data")
-        report.append("  ⚠️  Liability: Who is responsible for incorrect simplification?")
+        report.append("  [WARNING] Over-reliance on automation without human review")
+        report.append("  [WARNING] May miss cultural context in medical communication")
+        report.append("  [WARNING] Could deskill medical professionals if over-used")
+        report.append("  [WARNING] Privacy concerns if processing real patient data")
+        report.append("  [WARNING] Liability: Who is responsible for incorrect simplification?")
 
         report.append("\n**Unintended Consequences:**")
         report.append("  - Patients may misinterpret simplified text")
@@ -280,19 +280,19 @@ class EthicsAndFairnessEvaluator:
         report.append("-" * 80)
 
         report.append("\n**Beneficence (Do Good):**")
-        report.append("  ✅ Improves patient understanding and outcomes")
+        report.append("  [+] Improves patient understanding and outcomes")
 
         report.append("\n**Non-Maleficence (Do No Harm):**")
-        report.append("  ✅ Verification layer prevents medication errors")
-        report.append("  ✅ Flags unsafe simplifications for review")
+        report.append("  [+] Verification layer prevents medication errors")
+        report.append("  [+] Flags unsafe simplifications for review")
 
         report.append("\n**Autonomy (Patient Choice):**")
-        report.append("  ✅ Empowers patients with understandable information")
-        report.append("  ⚠️  Must respect patient's right to decline AI assistance")
+        report.append("  [+] Empowers patients with understandable information")
+        report.append("  [WARNING] Must respect patient's right to decline AI assistance")
 
         report.append("\n**Justice (Fairness):**")
-        report.append("  ⚠️  Currently limited to English speakers")
-        report.append("  ⚠️  May not serve all specialties equally")
+        report.append("  [WARNING] Currently limited to English speakers")
+        report.append("  [WARNING] May not serve all specialties equally")
         report.append("  → Requires expansion for true justice")
 
         # Summary
@@ -301,15 +301,15 @@ class EthicsAndFairnessEvaluator:
         report.append("=" * 80)
 
         report.append("\nSafeSim demonstrates responsible AI design with:")
-        report.append("  ✅ Safety verification layer")
-        report.append("  ✅ Interpretable error messages")
-        report.append("  ✅ Transparent limitations")
+        report.append("  [+] Safety verification layer")
+        report.append("  [+] Interpretable error messages")
+        report.append("  [+] Transparent limitations")
 
         report.append("\nHowever, deployment requires:")
-        report.append("  ⚠️  Human oversight (doctor review)")
-        report.append("  ⚠️  Regular bias audits")
-        report.append("  ⚠️  Expansion to underserved populations")
-        report.append("  ⚠️  Regulatory approval for clinical use")
+        report.append("  [WARNING] Human oversight (doctor review)")
+        report.append("  [WARNING] Regular bias audits")
+        report.append("  [WARNING] Expansion to underserved populations")
+        report.append("  [WARNING] Regulatory approval for clinical use")
 
         report.append("\n" + "=" * 80)
 
@@ -327,7 +327,7 @@ class EthicsAndFairnessEvaluator:
         with open(output_path, 'w') as f:
             json.dump(fairness, f, indent=2)
 
-        print(f"✅ Fairness metrics saved to: {output_path}")
+        print(f"Fairness metrics saved to: {output_path}")
 
 
 if __name__ == "__main__":

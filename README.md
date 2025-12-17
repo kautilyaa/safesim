@@ -8,7 +8,7 @@
 
 SafeSim is a medical text simplification system that uses a **neuro-symbolic approach** to convert complex discharge summaries and clinical notes into patient-friendly language while **guaranteeing** the preservation of critical medical facts.
 
-## 🎯 Problem Statement
+## Problem Statement
 
 Traditional neural text simplification models often suffer from:
 - **Hallucinations**: Adding information that wasn't in the original text
@@ -17,7 +17,7 @@ Traditional neural text simplification models often suffer from:
 
 In medical contexts, these failures can have serious consequences. A patient who doesn't know their correct dosage or medication schedule could face health risks.
 
-## 💡 Our Solution: Neuro-Symbolic Pipeline
+## Our Solution: Neuro-Symbolic Pipeline
 
 SafeSim combines neural language models with symbolic verification:
 
@@ -47,16 +47,16 @@ Input: "Patient prescribed 50mg Atenolol PO q.d. for hypertension."
 ┌─────────────────────────────────┐
 │ 3. Logic Verification (Symbolic)│  ← Deterministic checks
 ├─────────────────────────────────┤
-│ ✅ 50mg found                   │
-│ ✅ Atenolol found               │
-│ ✅ q.d. → "once a day" (OK)     │
+│ [OK] 50mg found                 │
+│ [OK] Atenolol found             │
+│ [OK] q.d. → "once a day" (OK)   │
 │ Score: 100% - SAFE              │
 └─────────────────────────────────┘
 
-Output: ✅ Verified safe simplification
+Output: [SAFE] Verified safe simplification
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -119,7 +119,7 @@ print(f"Safe: {result.is_safe}")
 print(f"Score: {result.verification['score']:.0%}")
 ```
 
-## 📊 Features
+## Features
 
 ### 1. Multi-Entity Extraction
 - **Dosages**: 50mg, 10 units, 2 tablets
@@ -151,7 +151,7 @@ print(f"Score: {result.verification['score']:.0%}")
 - **REST API**: FastAPI-based programmatic access
 - **Python Library**: Direct integration in your code
 
-## 🏗️ Architecture
+## Architecture
 
 ### Project Structure
 
@@ -249,7 +249,7 @@ Orchestrates the components:
        verification = checker.verify(entities, simplified)
 ```
 
-## 📚 API Documentation
+## API Documentation
 
 ### REST API Endpoints
 
@@ -319,7 +319,7 @@ results = pipeline.batch_process(texts, verbose=False)
 stats = pipeline.get_statistics(results)
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 ### LLM Backend Configuration
 
@@ -379,7 +379,7 @@ OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
 ### Build Docker Image
 
@@ -397,7 +397,7 @@ docker run -p 8501:8501 safesim:latest
 docker run -p 8000:8000 -e MODE=api safesim:latest
 ```
 
-## 🛠️ Development
+## Development
 
 ### Running Tests
 
@@ -449,7 +449,7 @@ class MyCustomSimplifier(LLMSimplifier):
         pass
 ```
 
-## 📈 Evaluation Metrics
+## Evaluation Metrics
 
 SafeSim can be evaluated on multiple dimensions:
 
@@ -468,7 +468,7 @@ SafeSim can be evaluated on multiple dimensions:
 - **Expert evaluation**: Do doctors approve of the simplifications?
 - **Task success**: Can patients follow instructions correctly?
 
-## 🎓 Use Cases
+## Use Cases
 
 ### 1. Patient Portals
 Hospitals can integrate SafeSim to automatically generate patient-friendly versions of:
@@ -488,7 +488,7 @@ NLP researchers can use SafeSim as:
 - A case study in neuro-symbolic AI
 - A testbed for medical NLP
 
-## 📝 Citation
+## Citation
 
 If you use SafeSim in your research, please cite:
 
@@ -502,7 +502,7 @@ If you use SafeSim in your research, please cite:
 }
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please:
 1. Fork the repository
@@ -511,11 +511,11 @@ Contributions are welcome! Please:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **spaCy** for NER capabilities
 - **Med-EASi dataset** creators (Basu et al.)
@@ -523,7 +523,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - **Streamlit** for the web framework
 - **FastAPI** for the REST API framework
 
-## 📧 Contact
+## Contact
 
 For questions or collaboration:
 - Email: your.email@umd.edu
@@ -531,4 +531,4 @@ For questions or collaboration:
 
 ---
 
-**⚕️ Disclaimer**: SafeSim is a research prototype. Always consult healthcare professionals for medical advice. Do not use this system for actual patient care without proper clinical validation and regulatory approval.
+**Disclaimer**: SafeSim is a research prototype. Always consult healthcare professionals for medical advice. Do not use this system for actual patient care without proper clinical validation and regulatory approval.

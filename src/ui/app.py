@@ -21,7 +21,7 @@ from src.entity_extraction import MedicalEntityExtractor
 # Page configuration
 st.set_page_config(
     page_title="SafeSim - Medical Text Simplification",
-    page_icon="🏥",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -101,14 +101,14 @@ def highlight_entities_html(text: str, entities: list) -> str:
 
 def main():
     # Header
-    st.title("🏥 SafeSim: Safe Medical Text Simplification")
+    st.title("SafeSim: Safe Medical Text Simplification")
     st.markdown("""
     SafeSim uses a **neuro-symbolic approach** to simplify medical discharge summaries
     while guaranteeing the preservation of critical facts (medications, dosages, vitals).
     """)
 
     # Sidebar configuration
-    st.sidebar.header("⚙️ Configuration")
+    st.sidebar.header("Configuration")
 
     llm_backend = st.sidebar.selectbox(
         "LLM Backend",
@@ -136,7 +136,7 @@ def main():
         sidebar_key = st.sidebar.text_input("Anthropic API Key", type="password", help="Leave empty to use ANTHROPIC_API_KEY from .env file")
         api_key = sidebar_key if sidebar_key else os.getenv("ANTHROPIC_API_KEY")
     # Example texts
-    st.sidebar.header("📝 Example Texts")
+    st.sidebar.header("Example Texts")
     examples = {
         "Example 1: Hypertension": "Patient prescribed 50mg Atenolol PO q.d. for hypertension. Monitor for bradycardia.",
         "Example 2: Diabetes": "Administer 10 units insulin subcutaneously b.i.d. before meals. Check blood glucose q.i.d. Target range 80-120 mg/dL.",
@@ -150,7 +150,7 @@ def main():
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        st.header("📄 Input: Medical Text")
+        st.header("Input: Medical Text")
 
         # Text input
         default_text = examples.get(selected_example, "")
@@ -161,10 +161,10 @@ def main():
             placeholder="Patient prescribed 50mg Atenolol PO q.d. for hypertension. Monitor for bradycardia."
         )
 
-        process_button = st.button("🔄 Simplify Text", type="primary", use_container_width=True)
+        process_button = st.button("Simplify Text", type="primary", use_container_width=True)
 
     with col2:
-        st.header("✨ Output: Simplified Text")
+        st.header("Output: Simplified Text")
 
         if process_button and input_text:
             with st.spinner("Processing..."):
@@ -185,16 +185,16 @@ def main():
 
                     # Display relevance status FIRST (critical safety check)
                     if not result.is_relevant:
-                        st.error("🚨 **CRITICAL SAFETY ALERT: UNRELATED CONTENT**")
-                        st.markdown(f'<div class="unsafe-badge">❌ NOT PROCESSED</div>', unsafe_allow_html=True)
+                        st.error("**CRITICAL SAFETY ALERT: UNRELATED CONTENT**")
+                        st.markdown(f'<div class="unsafe-badge">NOT PROCESSED</div>', unsafe_allow_html=True)
                         st.warning(f"**Content Relevance:** {result.relevance_status.upper()}")
                         st.info(result.relevance_explanation)
                     else:
                         # Display simplified text
                         if result.is_safe:
-                            st.markdown(f'<div class="safe-badge">✅ SAFE</div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="safe-badge">SAFE</div>', unsafe_allow_html=True)
                         else:
-                            st.markdown(f'<div class="unsafe-badge">⚠️ NEEDS REVIEW</div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="unsafe-badge">NEEDS REVIEW</div>', unsafe_allow_html=True)
                         
                         # Show relevance note if not clearly medical
                         if hasattr(result, 'relevance_status') and result.relevance_status != 'medical':
@@ -225,13 +225,13 @@ def main():
                     # Show warnings
                     if result.warnings:
                         st.markdown('<div class="unsafe-warning">', unsafe_allow_html=True)
-                        st.markdown("### ⚠️ Safety Alerts")
+                        st.markdown("### Safety Alerts")
                         for warning in result.warnings:
                             st.warning(warning)
                         st.markdown('</div>', unsafe_allow_html=True)
 
                     # Detailed analysis in expander
-                    with st.expander("🔍 Detailed Analysis", expanded=False):
+                    with st.expander("Detailed Analysis", expanded=False):
                         st.subheader("Extracted Entities")
 
                         # Display entities

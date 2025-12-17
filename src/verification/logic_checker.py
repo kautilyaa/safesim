@@ -149,7 +149,7 @@ class LogicChecker:
         if missing:
             for entity in missing:
                 warnings.append(
-                    f"⚠️ SAFETY ALERT: Critical entity '{entity}' not found in simplified text!"
+                    f"SAFETY ALERT: Critical entity '{entity}' not found in simplified text!"
                 )
 
         return VerificationResult(
@@ -264,14 +264,14 @@ class LogicChecker:
     def explain_verification(self, result: VerificationResult) -> str:
         """Generate human-readable explanation of verification"""
         if result.is_safe:
-            explanation = f"✅ SAFE: Verification score: {result.score:.1%}\n"
+            explanation = f"SAFE: Verification score: {result.score:.1%}\n"
             explanation += "All critical medical entities are preserved."
         else:
-            explanation = f"❌ UNSAFE: Verification score: {result.score:.1%}\n"
+            explanation = f"UNSAFE: Verification score: {result.score:.1%}\n"
             explanation += "The simplified text has issues:\n"
 
             if result.missing_entities:
-                explanation += f"\n⚠️ Missing {len(result.missing_entities)} critical entities:\n"
+                explanation += f"\nMissing {len(result.missing_entities)} critical entities:\n"
                 for entity in result.missing_entities:
                     explanation += f"  - {entity}\n"
 

@@ -195,7 +195,7 @@ class SafeSimPipeline:
         
         # Add relevance warning if status is not clearly medical
         if relevance_result.status.value != "medical":
-            warnings.insert(0, f"⚠️ Relevance Note: {relevance_result.explanation}")
+            warnings.insert(0, f"Relevance Note: {relevance_result.explanation}")
 
         return SafeSimResult(
             original_text=text,

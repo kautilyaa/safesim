@@ -186,7 +186,7 @@ class ContentRelevanceChecker:
             status = RelevanceStatus.MEDICAL
             is_relevant = True
             explanation = (
-                f"✅ Medical content detected. Found {strong_count} strong medical indicators "
+                f"Medical content detected. Found {strong_count} strong medical indicators "
                 f"(e.g., {', '.join(medical_indicators[:3])}). Safe to process."
             )
         elif strong_count >= 1 or moderate_count >= 3:
@@ -194,7 +194,7 @@ class ContentRelevanceChecker:
             status = RelevanceStatus.LIKELY_MEDICAL
             is_relevant = True
             explanation = (
-                f"⚠️ Likely medical content. Found {strong_count} strong and {moderate_count} moderate indicators. "
+                f"Likely medical content. Found {strong_count} strong and {moderate_count} moderate indicators. "
                 f"Proceeding with caution."
             )
         elif medical_score > 0:
@@ -202,7 +202,7 @@ class ContentRelevanceChecker:
             status = RelevanceStatus.UNCLEAR
             is_relevant = not self.strict_mode  # Only process if not in strict mode
             explanation = (
-                f"⚠️ Content relevance is UNCLEAR. Found limited medical indicators "
+                f"Content relevance is UNCLEAR. Found limited medical indicators "
                 f"({strong_count} strong, {moderate_count} moderate). "
                 f"{'Processing with caution.' if is_relevant else 'Rejecting for safety (strict mode).'}"
             )
