@@ -80,6 +80,18 @@ streamlit run src/ui/app.py
 
 Then open http://localhost:8501 in your browser.
 
+### Run the API Server
+
+```bash
+# Using uvicorn directly
+uvicorn src.api.app:app --host 0.0.0.0 --port 8000
+
+# Or using Python
+python -m src.api.app
+```
+
+API documentation will be available at http://localhost:8000/api/docs
+
 ### Run Tests
 
 ```bash
@@ -132,74 +144,12 @@ print(f"Score: {result.verification['score']:.0%}")
 - Acceptable transformation dictionary (e.g., "q.d." → "once a day")
 - Fuzzy matching for spacing variations
 - Warning generation for missing entities
+- Content relevance checking (ensures only medical text is processed)
 
-## 📚 Literature Survey
-
-### Related Work
-
-SafeSim builds on recent advances in medical NLP and controllable text generation.
-
-#### A. Datasets (Where we get data)
-
-1. **Med-EASi** (Basu et al., AAAI 2023)
-   - Finely annotated dataset for medical text simplification
-   - Expert vs. Layman versions with tagged elaborations and replacements
-   - **Why we use it**: Explicitly marks medical jargon transformations
-   - Paper: "Med-EASi: Finely Annotated Dataset and Models for Controllable Simplification of Medical Texts"
-
-2. **Cochrane/MultiSim** (Van den Bercken et al., EACL 2023)
-   - Paragraph-level medical abstracts from Cochrane database
-   - **Why we use it**: Good for summarization-style simplification
-   - Paper: "NapSS: Paragraph-level Medical Text Simplification"
-
-#### B. Baselines (What we compare against)
-
-1. **BART-UL** (Devaraj et al., EMNLP 2021)
-   - Uses BART with unlikelihood training to punish jargon
-   - **Limitation**: Strong on readability but weak on fact preservation
-   - Paper: "Paragraph-level Medical Text Simplification"
-
-2. **Standard T5/Pegasus**
-   - Fine-tuned seq2seq models on WikiLarge or medical corpora
-   - **Limitation**: Treats medical text like general text, smooths out critical details
-   - Used as baseline in many medical NLP benchmarks
-
-3. **GPT-3 Few-Shot** (Brown et al., NeurIPS 2020)
-   - In-context learning for simplification
-   - **Limitation**: Can hallucinate, no verification mechanism
-
-#### C. Similar Works (Closest to our approach)
-
-1. **Fact-Controlled Hallucination Detection** (Interspeech 2025)
-   - Detects hallucinations in medical summarization
-   - **Similarity**: Also focuses on fact verification
-   - **Difference**: They detect errors *after* generation (diagnosis). We *prevent/fix* them during generation (mitigation).
-
-2. **TESLEA** (JMIR 2022) - Reinforcement Learning
-   - Uses RL rewards to improve simplicity while preserving facts
-   - **Similarity**: Also aims for safe simplification
-   - **Difference**: Uses abstract reward functions (learned). We use symbolic constraints (deterministic, interpretable).
-   - Paper: "Medical Text Simplification Using Reinforcement Learning"
-
-3. **Entity-Constrained Summarization** (ACL 2022)
-   - Constrains summarization to include key entities
-   - **Similarity**: Entity-centric approach
-   - **Difference**: Focuses on extractive summarization. We focus on abstractive simplification with verification.
-
-### Our Novelty
-
-**SafeSim introduces a Neuro-Symbolic Validation Loop:**
-
-1. **Symbolic Entity Extraction**: Deterministic pattern matching guarantees we capture critical facts
-2. **Neural Simplification**: LLMs provide natural, fluent simplifications
-3. **Symbolic Verification**: Hard constraints ensure no critical information is lost
-
-This is different from:
-- Pure neural approaches (BART-UL, T5) that have no safety guarantees
-- Pure symbolic approaches (rule-based) that lack fluency and coverage
-- RL approaches (TESLEA) that use soft, learned rewards instead of hard constraints
-
-**Key Advantage**: SafeSim provides **interpretable, deterministic safety guarantees** that are crucial for clinical deployment.
+### 5. Multiple Interfaces
+- **Web UI**: Streamlit-based interactive interface
+- **REST API**: FastAPI-based programmatic access
+- **Python Library**: Direct integration in your code
 
 ## 🏗️ Architecture
 
@@ -216,10 +166,14 @@ safesim/
 │   │   └── llm_simplifier.py     # LLM backends (GPT, Claude, BART)
 │   ├── verification/
 │   │   ├── __init__.py
-│   │   └── logic_checker.py      # Symbolic fact verification
+│   │   ├── logic_checker.py      # Symbolic fact verification
+│   │   └── content_relevance.py  # Medical content relevance check
 │   ├── ui/
 │   │   ├── __init__.py
 │   │   └── app.py                # Streamlit web interface
+│   ├── api/
+│   │   ├── __init__.py
+│   │   └── app.py                # FastAPI REST API
 │   ├── __init__.py
 │   └── safesim_pipeline.py       # Main orchestration pipeline
 ├── tests/
@@ -227,8 +181,12 @@ safesim/
 │   └── test_pipeline.py          # Unit tests
 ├── examples/
 │   └── medical_texts.json        # Example medical texts
-├── data/                         # (Optional) Training data
+├── evaluation/
+│   ├── baselines/                # Baseline models
+│   ├── metrics/                  # Evaluation metrics
+│   └── notebooks/                # Evaluation notebooks
 ├── requirements.txt
+├── setup.py
 └── README.md
 ```
 
@@ -271,76 +229,95 @@ Deterministic checks:
 
 **Scoring**: Jaccard similarity between original and simplified entity sets
 
-#### 4. Pipeline (`src/safesim_pipeline.py`)
+#### 4. Content Relevance Check (`src/verification/content_relevance.py`)
 
-Orchestrates the three components:
+Ensures only medical content is processed:
+- Detects non-medical text and rejects it
+- Prevents misuse of the system
+- Provides safety warnings
+
+#### 5. Pipeline (`src/safesim_pipeline.py`)
+
+Orchestrates the components:
 ```python
-1. entities = extractor.extract(text)
-2. simplified = simplifier.simplify(text, entities)
-3. verification = checker.verify(entities, simplified)
-4. if not safe and retries < max:
+1. relevance = relevance_checker.check(text)
+2. entities = extractor.extract(text)
+3. simplified = simplifier.simplify(text, entities)
+4. verification = checker.verify(entities, simplified)
+5. if not safe and retries < max:
        simplified = simplifier.simplify(text, entities + missing)
        verification = checker.verify(entities, simplified)
 ```
 
-## 📈 Evaluation Metrics
+## 📚 API Documentation
 
-SafeSim can be evaluated on multiple dimensions:
+### REST API Endpoints
 
-### 1. Safety Metrics
-- **Entity Preservation Rate**: % of critical entities preserved
-- **Hallucination Rate**: % of generated entities not in original
-- **Verification Score**: Jaccard similarity of entity sets
+#### GET `/`
+Root endpoint with service information.
 
-### 2. Simplification Quality
-- **Readability**: Flesch-Kincaid Grade Level
-- **Compression**: Length reduction ratio
-- **Fluency**: Perplexity scores
+#### GET `/api/health`
+Health check endpoint.
 
-### 3. Clinical Utility
-- **User studies**: Can patients understand the simplified text?
-- **Expert evaluation**: Do doctors approve of the simplifications?
-- **Task success**: Can patients follow instructions correctly?
+#### POST `/api/simplify`
+Simplify medical text.
 
-## 🔬 Experimental Setup
+**Request Body:**
+```json
+{
+  "text": "Patient prescribed 50mg Atenolol PO q.d. for hypertension.",
+  "llm_backend": "dummy",
+  "strictness": "high",
+  "api_key": "optional-api-key",
+  "verbose": false
+}
+```
 
-### Datasets
-1. **Med-EASi** for training and evaluation
-2. **Custom test set** of 50 discharge summaries (see `examples/medical_texts.json`)
+**Response:**
+```json
+{
+  "original_text": "...",
+  "simplified_text": "...",
+  "entities": [...],
+  "verification": {
+    "is_safe": true,
+    "score": 1.0,
+    "missing_entities": [],
+    "warnings": []
+  },
+  "is_safe": true,
+  "is_relevant": true,
+  "relevance_status": "medical",
+  "relevance_explanation": "...",
+  "warnings": [],
+  "model_used": "dummy"
+}
+```
 
-### Baselines
-1. BART-large fine-tuned on Med-EASi
-2. T5-base fine-tuned on Med-EASi
-3. GPT-3.5 few-shot
-4. Rule-based simplification
+#### GET `/api/backends`
+List available LLM backends.
 
-### Our Approach
-- SafeSim with different LLM backends
-- Ablation: SafeSim without verification (to show value of symbolic layer)
+### Python API
 
-### Evaluation
-- Automatic metrics: BLEU, SARI, entity preservation
-- Human evaluation: Fluency, adequacy, safety (1-5 scale)
+```python
+from src.safesim_pipeline import SafeSimPipeline, SafeSimResult
 
-## 🎓 Use Cases
+# Initialize pipeline
+pipeline = SafeSimPipeline(
+    llm_backend="openai",
+    strictness="high",
+    api_key="sk-..."
+)
 
-### 1. Patient Portals
-Hospitals can integrate SafeSim to automatically generate patient-friendly versions of:
-- Discharge summaries
-- Medication instructions
-- Lab result explanations
+# Process single text
+result: SafeSimResult = pipeline.process(text, verbose=True)
 
-### 2. Medical Education
-Medical students can use SafeSim to:
-- Learn medical terminology in context
-- See how to communicate with patients
-- Practice writing patient-friendly notes
+# Process multiple texts
+results = pipeline.batch_process(texts, verbose=False)
 
-### 3. Research
-NLP researchers can use SafeSim as:
-- A baseline for controllable generation
-- A case study in neuro-symbolic AI
-- A testbed for medical NLP
+# Get statistics
+stats = pipeline.get_statistics(results)
+```
 
 ## ⚙️ Configuration
 
@@ -391,6 +368,33 @@ pipeline = SafeSimPipeline(strictness="low")
 # - Semantic equivalence accepted
 # - 75%+ similarity required
 # - Max 2 missing non-critical entities
+```
+
+### Environment Variables
+
+Create a `.env` file:
+
+```bash
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+## 🐳 Docker Deployment
+
+### Build Docker Image
+
+```bash
+docker build -t safesim:latest .
+```
+
+### Run Container
+
+```bash
+# Streamlit UI
+docker run -p 8501:8501 safesim:latest
+
+# API Server
+docker run -p 8000:8000 -e MODE=api safesim:latest
 ```
 
 ## 🛠️ Development
@@ -445,6 +449,45 @@ class MyCustomSimplifier(LLMSimplifier):
         pass
 ```
 
+## 📈 Evaluation Metrics
+
+SafeSim can be evaluated on multiple dimensions:
+
+### 1. Safety Metrics
+- **Entity Preservation Rate**: % of critical entities preserved
+- **Hallucination Rate**: % of generated entities not in original
+- **Verification Score**: Jaccard similarity of entity sets
+
+### 2. Simplification Quality
+- **Readability**: Flesch-Kincaid Grade Level
+- **Compression**: Length reduction ratio
+- **Fluency**: Perplexity scores
+
+### 3. Clinical Utility
+- **User studies**: Can patients understand the simplified text?
+- **Expert evaluation**: Do doctors approve of the simplifications?
+- **Task success**: Can patients follow instructions correctly?
+
+## 🎓 Use Cases
+
+### 1. Patient Portals
+Hospitals can integrate SafeSim to automatically generate patient-friendly versions of:
+- Discharge summaries
+- Medication instructions
+- Lab result explanations
+
+### 2. Medical Education
+Medical students can use SafeSim to:
+- Learn medical terminology in context
+- See how to communicate with patients
+- Practice writing patient-friendly notes
+
+### 3. Research
+NLP researchers can use SafeSim as:
+- A baseline for controllable generation
+- A case study in neuro-symbolic AI
+- A testbed for medical NLP
+
 ## 📝 Citation
 
 If you use SafeSim in your research, please cite:
@@ -478,6 +521,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - **Med-EASi dataset** creators (Basu et al.)
 - **OpenAI, Anthropic, HuggingFace** for LLM APIs
 - **Streamlit** for the web framework
+- **FastAPI** for the REST API framework
 
 ## 📧 Contact
 
