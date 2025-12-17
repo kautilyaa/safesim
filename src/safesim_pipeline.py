@@ -10,6 +10,7 @@ import json
 from src.entity_extraction import MedicalEntityExtractor, MedicalEntity
 from src.simplification import get_simplifier, SimplificationResult
 from src.verification import LogicChecker, VerificationResult
+from src.verification.content_relevance import ContentRelevanceChecker, RelevanceResult
 
 
 @dataclass
@@ -22,9 +23,13 @@ class SafeSimResult:
     is_safe: bool
     warnings: List[str]
     model_used: str
+    is_relevant: bool = True  # Whether content is medical-related
+    relevance_status: str = "medical"  # Status from relevance check
+    relevance_explanation: str = ""  # Explanation of relevance check
 
     def to_dict(self):
-        return asdict(self)
+        result = asdict(self)
+        return result
 
     def to_json(self):
         return json.dumps(self.to_dict(), indent=2)
@@ -60,6 +65,7 @@ class SafeSimPipeline:
         self.extractor = MedicalEntityExtractor()
         self.simplifier = get_simplifier(llm_backend, **llm_kwargs)
         self.checker = LogicChecker(strictness=strictness)
+        self.relevance_checker = ContentRelevanceChecker(strict_mode=True)
         self.max_retries = max_retries
         self.llm_backend = llm_backend
 
@@ -79,6 +85,35 @@ class SafeSimPipeline:
             print("SAFESIM PIPELINE")
             print("=" * 60)
             print(f"\nOriginal text:\n{text}\n")
+
+        # Stage 0: Check content relevance (CRITICAL SAFETY CHECK)
+        if verbose:
+            print("\n[Stage 0] Checking content relevance...")
+
+        relevance_result = self.relevance_checker.check(text)
+
+        if verbose:
+            print(relevance_result.explanation)
+
+        # If content is unrelated, return early with safety warning
+        if not relevance_result.is_relevant:
+            return SafeSimResult(
+                original_text=text,
+                simplified_text="",
+                entities=[],
+                verification={},
+                is_safe=False,
+                warnings=[
+                    f"🚨 CRITICAL SAFETY ALERT: {relevance_result.explanation}",
+                    "This text was NOT processed because it is unrelated to medical content.",
+                    "SafeSim is designed ONLY for medical text simplification.",
+                    "Please provide medical discharge summaries, clinical notes, or medication instructions."
+                ],
+                model_used=self.llm_backend,
+                is_relevant=False,
+                relevance_status=relevance_result.status.value,
+                relevance_explanation=relevance_result.explanation
+            )
 
         # Stage 1: Extract entities
         if verbose:
@@ -106,7 +141,10 @@ class SafeSimPipeline:
                 verification={},
                 is_safe=False,
                 warnings=[f"Simplification failed: {simplification_result.error_message}"],
-                model_used=self.llm_backend
+                model_used=self.llm_backend,
+                is_relevant=True,
+                relevance_status=relevance_result.status.value,
+                relevance_explanation=relevance_result.explanation
             )
 
         simplified_text = simplification_result.simplified_text
@@ -153,14 +191,23 @@ class SafeSimPipeline:
                 print(self.checker.explain_verification(verification_result))
 
         # Prepare final result
+        warnings = verification_result.warnings.copy()
+        
+        # Add relevance warning if status is not clearly medical
+        if relevance_result.status.value != "medical":
+            warnings.insert(0, f"Relevance Note: {relevance_result.explanation}")
+
         return SafeSimResult(
             original_text=text,
             simplified_text=simplified_text,
             entities=[e.to_dict() for e in entities],
             verification=verification_result.to_dict(),
             is_safe=verification_result.is_safe,
-            warnings=verification_result.warnings,
-            model_used=simplification_result.model_used
+            warnings=warnings,
+            model_used=simplification_result.model_used,
+            is_relevant=True,
+            relevance_status=relevance_result.status.value,
+            relevance_explanation=relevance_result.explanation
         )
 
     def _create_retry_prompt(

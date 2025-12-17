@@ -21,7 +21,7 @@ from src.entity_extraction import MedicalEntityExtractor
 # Page configuration
 st.set_page_config(
     page_title="SafeSim - Medical Text Simplification",
-    page_icon="🏥",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -101,14 +101,14 @@ def highlight_entities_html(text: str, entities: list) -> str:
 
 def main():
     # Header
-    st.title("🏥 SafeSim: Safe Medical Text Simplification")
+    st.title("SafeSim: Safe Medical Text Simplification")
     st.markdown("""
     SafeSim uses a **neuro-symbolic approach** to simplify medical discharge summaries
     while guaranteeing the preservation of critical facts (medications, dosages, vitals).
     """)
 
     # Sidebar configuration
-    st.sidebar.header("⚙️ Configuration")
+    st.sidebar.header("Configuration")
 
     llm_backend = st.sidebar.selectbox(
         "LLM Backend",
@@ -136,7 +136,7 @@ def main():
         sidebar_key = st.sidebar.text_input("Anthropic API Key", type="password", help="Leave empty to use ANTHROPIC_API_KEY from .env file")
         api_key = sidebar_key if sidebar_key else os.getenv("ANTHROPIC_API_KEY")
     # Example texts
-    st.sidebar.header("📝 Example Texts")
+    st.sidebar.header("Example Texts")
     examples = {
         "Example 1: Hypertension": "Patient prescribed 50mg Atenolol PO q.d. for hypertension. Monitor for bradycardia.",
         "Example 2: Diabetes": "Administer 10 units insulin subcutaneously b.i.d. before meals. Check blood glucose q.i.d. Target range 80-120 mg/dL.",
@@ -150,7 +150,7 @@ def main():
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        st.header("📄 Input: Medical Text")
+        st.header("Input: Medical Text")
 
         # Text input
         default_text = examples.get(selected_example, "")
@@ -161,10 +161,10 @@ def main():
             placeholder="Patient prescribed 50mg Atenolol PO q.d. for hypertension. Monitor for bradycardia."
         )
 
-        process_button = st.button("🔄 Simplify Text", type="primary", use_container_width=True)
+        process_button = st.button("Simplify Text", type="primary", use_container_width=True)
 
     with col2:
-        st.header("✨ Output: Simplified Text")
+        st.header("Output: Simplified Text")
 
         if process_button and input_text:
             with st.spinner("Processing..."):
@@ -183,11 +183,22 @@ def main():
                     # Process text
                     result = pipeline.process(input_text, verbose=False)
 
-                    # Display simplified text
-                    if result.is_safe:
-                        st.markdown(f'<div class="safe-badge">✅ SAFE</div>', unsafe_allow_html=True)
+                    # Display relevance status FIRST (critical safety check)
+                    if not result.is_relevant:
+                        st.error("**CRITICAL SAFETY ALERT: UNRELATED CONTENT**")
+                        st.markdown(f'<div class="unsafe-badge">NOT PROCESSED</div>', unsafe_allow_html=True)
+                        st.warning(f"**Content Relevance:** {result.relevance_status.upper()}")
+                        st.info(result.relevance_explanation)
                     else:
-                        st.markdown(f'<div class="unsafe-badge">⚠️ NEEDS REVIEW</div>', unsafe_allow_html=True)
+                        # Display simplified text
+                        if result.is_safe:
+                            st.markdown(f'<div class="safe-badge">SAFE</div>', unsafe_allow_html=True)
+                        else:
+                            st.markdown(f'<div class="unsafe-badge">NEEDS REVIEW</div>', unsafe_allow_html=True)
+                        
+                        # Show relevance note if not clearly medical
+                        if hasattr(result, 'relevance_status') and result.relevance_status != 'medical':
+                            st.info(f"**Content Relevance:** {result.relevance_status.replace('_', ' ').title()}")
 
                     # Safely display verification score
                     if result.verification and 'score' in result.verification:
@@ -195,23 +206,32 @@ def main():
                     else:
                         st.markdown("**Verification Score:** N/A (simplification failed)")
 
-                    st.text_area(
-                        "Simplified text:",
-                        value=result.simplified_text,
-                        height=200,
-                        disabled=True
-                    )
+                    # Only show simplified text if content is relevant
+                    if result.is_relevant:
+                        st.text_area(
+                            "Simplified text:",
+                            value=result.simplified_text if result.simplified_text else "No simplified text generated.",
+                            height=200,
+                            disabled=True
+                        )
+                    else:
+                        st.text_area(
+                            "Simplified text:",
+                            value="[Content not processed - unrelated to medical text]",
+                            height=200,
+                            disabled=True
+                        )
 
                     # Show warnings
                     if result.warnings:
                         st.markdown('<div class="unsafe-warning">', unsafe_allow_html=True)
-                        st.markdown("### ⚠️ Safety Alerts")
+                        st.markdown("### Safety Alerts")
                         for warning in result.warnings:
                             st.warning(warning)
                         st.markdown('</div>', unsafe_allow_html=True)
 
                     # Detailed analysis in expander
-                    with st.expander("🔍 Detailed Analysis", expanded=False):
+                    with st.expander("Detailed Analysis", expanded=False):
                         st.subheader("Extracted Entities")
 
                         # Display entities
@@ -246,92 +266,6 @@ def main():
 
         elif process_button:
             st.warning("Please enter some medical text to simplify.")
-
-    # Footer with information
-    st.markdown("---")
-
-    with st.expander("ℹ️ About SafeSim"):
-        st.markdown("""
-        ### How SafeSim Works
-
-        SafeSim uses a **neuro-symbolic pipeline** with three stages:
-
-        1. **Entity Extraction (Symbolic):** Uses Named Entity Recognition and pattern matching to identify critical medical entities:
-           - Dosages (e.g., "50mg")
-           - Medications (e.g., "Atenolol")
-           - Vital signs (e.g., "120/80 mmHg")
-           - Frequencies (e.g., "q.d.", "twice daily")
-           - Routes (e.g., "PO", "IV")
-
-        2. **LLM Simplification (Neural):** Uses large language models to convert medical jargon into plain language:
-           - "hypertension" → "high blood pressure"
-           - "q.d." → "once a day"
-           - "bradycardia" → "slow heart rate"
-
-        3. **Logic Verification (Symbolic):** Deterministically checks that all critical entities are preserved:
-           - ✅ Green = Verified and safe
-           - ⚠️ Red = Missing critical information
-
-        ### Why This Matters
-
-        Traditional text simplification models can "hallucinate" or omit critical medical information.
-        SafeSim's symbolic verification layer **guarantees** that critical facts are never lost during simplification.
-
-        ### Literature Survey
-
-        SafeSim builds on recent advances in medical NLP:
-
-        **Datasets:**
-        - Med-EASi (Basu et al., AAAI 2023) - Finely annotated medical text simplification
-        - Cochrane/MultiSim - Paragraph-level simplification benchmarks
-
-        **Baselines:**
-        - BART-UL (Devaraj et al., EMNLP 2021) - Unlikelihood training
-        - T5/Pegasus - Standard seq2seq models
-
-        **Novel Approach:**
-        - Neuro-symbolic validation loop
-        - Deterministic fact preservation
-        - Interpretable safety guarantees
-
-        ### Citation
-
-        If you use SafeSim in your research, please cite:
-
-        ```
-        @inproceedings{safesim2024,
-          title={SafeSim: Neuro-Symbolic Medical Text Simplification with Guaranteed Fact Preservation},
-          author={Your Name},
-          booktitle={NLP 607 Final Project},
-          year={2024}
-        }
-        ```
-        """)
-
-    with st.expander("🚀 Technical Details"):
-        st.markdown("""
-        ### Architecture
-
-        - **Entity Extraction:** spaCy + regex patterns
-        - **LLM Backends:** OpenAI GPT-4, Claude, HuggingFace T5/BART
-        - **Verification:** Deterministic string matching + fuzzy matching
-        - **Interface:** Streamlit web application
-
-        ### Strictness Levels
-
-        - **High:** All critical entities must match exactly (95%+ similarity)
-        - **Medium:** Minor variations allowed (85%+ similarity)
-        - **Low:** Semantic equivalence accepted (75%+ similarity)
-
-        ### Safety Guarantees
-
-        SafeSim will **never** mark a simplification as safe if:
-        - Any dosage is missing or modified
-        - Any medication name is omitted
-        - Any vital sign measurement is changed
-
-        This makes SafeSim suitable for real-world clinical applications where patient safety is paramount.
-        """)
 
 
 if __name__ == "__main__":

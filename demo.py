@@ -42,9 +42,9 @@ def print_result(result, index=None):
 
     print(f"\nVERIFICATION:")
     if result.is_safe:
-        print(f"  ✅ SAFE - Score: {result.verification['score']:.0%}")
+        print(f"  [SAFE] - Score: {result.verification['score']:.0%}")
     else:
-        print(f"  ⚠️  UNSAFE - Score: {result.verification['score']:.0%}")
+        print(f"  [UNSAFE] - Score: {result.verification['score']:.0%}")
 
     if result.warnings:
         print(f"\nWARNINGS:")
