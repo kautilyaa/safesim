@@ -1,6 +1,10 @@
 # SafeSim: Safe Medical Text Simplification with Neuro-Symbolic Verification
 
 <p align="center">
+  <img src="Resources/Gemini_Generated_Image_40rwgo40rwgo40rw.png" alt="SafeSim Logo" width="300">
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue" alt="Python 3.8+">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/Status-Active-success" alt="Active">
@@ -158,6 +162,15 @@ docker build -t safesim:latest .
 docker run -p 8501:8501 safesim:latest  # UI
 docker run -p 8000:8000 -e MODE=api safesim:latest  # API
 ```
+
+## Documentation & Resources
+
+### Documentation
+- [SafeSim Documentation](Document/SafeSim_Documentation.pdf) - Complete system documentation
+- [SafeSim: Neuro-Symbolic Medical Text Simplification](Document/SafeSim-Neuro-Symbolic-Medical-Text-Simplification.pdf) - Research paper
+
+### Video Tutorial
+- [SafeSim Demo Video](https://www.youtube.com/watch?v=rIOJlJlzI6k) - Watch the SafeSim system in action
 
 ## License
 
